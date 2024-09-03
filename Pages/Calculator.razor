@@ -1,0 +1,82 @@
+﻿@page "/calculator"
+@inject BlazorCalculatorApp.Data.AppDbContext DbContext
+@using BlazorCalculatorApp.Data;
+
+<h3>Simple Calculator</h3>
+
+<div style="background-color:yellow;border:solid 1px black;">
+    <div>
+        <label>Value 1:</label>
+        <input type="number" @bind="Operand1" />
+
+        <select @bind="Operation">
+            <option value="+">+</option>
+            <option value="-">-</option>
+            <option value="*">*</option>
+            <option value="/">/</option>
+        </select>
+
+        <label>Operand 2:</label>
+        <input type="number" @bind="Operand2" />
+    </div>
+
+
+
+    <div style="align-content:center;width:100%">
+        <center>
+        <button @onclick="Calculate">Calculate Result</button>
+        </center>
+    </div>
+    <div>
+        <label>Result:</label>
+        <input type="text" @bind="Result" readonly />
+    </div>
+
+<h4>History</h4>
+@if (LastCalculation != null)
+{
+    <p>@LastCalculation.Operand1 @LastCalculation.Operation @LastCalculation.Operand2 = @LastCalculation.Result</p>
+}
+else
+{
+    <p>No history available.</p>
+}
+</div>
+
+@code {
+    private double Operand1 { get; set; }
+    private double Operand2 { get; set; }
+    private string Operation { get; set; } = "+";
+    private string Result { get; set; }
+    private CalculationHistory LastCalculation { get; set; }
+
+    private void Calculate()
+    {
+        try
+        {
+            double result = Operation switch
+            {
+                "+" => Operand1 + Operand2,
+                "-" => Operand1 - Operand2,
+                "*" => Operand1 * Operand2,
+                "/" => Operand2 == 0 ? throw new DivideByZeroException() : Operand1 / Operand2,
+                _ => throw new InvalidOperationException("Invalid operation")
+            };
+
+            Result = result.ToString();
+            DbContext.SaveCalculation(Operand1, Operand2, Operation, Result);
+        }
+        catch (DivideByZeroException)
+        {
+            Result = "Error: Division by zero.";
+        }
+        catch (Exception ex)
+        {
+            Result = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            LastCalculation = DbContext.GetLastCalculation();
+        }
+    }
+}
